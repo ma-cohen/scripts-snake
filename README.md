@@ -56,6 +56,14 @@ Remove an alias:
 snake remove build
 ```
 
+Or choose an alias to remove interactively:
+
+```bash
+snake remove
+```
+
+Press `Esc` to exit interactive selection without running or removing anything.
+
 ## Storage
 
 Aliases are stored in a user config file managed by your operating system, so

@@ -21,6 +21,7 @@ pub fn confirm_overwrite(alias: &str) -> Result<bool> {
 }
 
 pub fn select_alias(
+    message: &str,
     scripts: &[ScriptAlias],
     initial_query: Option<&str>,
 ) -> Result<Option<ScriptAlias>> {
@@ -29,14 +30,13 @@ pub fn select_alias(
     }
 
     let options = scripts.to_vec();
-    let mut prompt = Select::new("Choose a command:", options).with_page_size(12);
+    let mut prompt = Select::new(message, options).with_page_size(12);
 
     if let Some(query) = initial_query.filter(|query| !query.trim().is_empty()) {
         prompt = prompt.with_starting_filter_input(query);
     }
 
     prompt
-        .prompt()
-        .map(Some)
+        .prompt_skippable()
         .context("failed to select command")
 }

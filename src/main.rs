@@ -4,7 +4,7 @@ mod ui;
 
 use std::process;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 use store::AliasStore;
 
@@ -28,8 +28,8 @@ enum Commands {
     /// Remove a saved alias.
     #[command(alias = "rm")]
     Remove {
-        /// Alias to remove.
-        alias: String,
+        /// Alias to remove. If omitted, choose from an interactive picker.
+        alias: Option<String>,
     },
     /// Run an alias directly or search with an initial query.
     Run {
@@ -52,7 +52,7 @@ fn try_main() -> Result<()> {
     match cli.command {
         Some(Commands::Add) => add_alias(&mut store),
         Some(Commands::List) => list_aliases(&store),
-        Some(Commands::Remove { alias }) => remove_alias(&mut store, &alias),
+        Some(Commands::Remove { alias }) => remove_alias(&mut store, alias.as_deref()),
         Some(Commands::Run { query }) => run_alias(&store, query.as_deref()),
         None => pick_and_run(&store, None),
     }
@@ -93,7 +93,15 @@ fn list_aliases(store: &AliasStore) -> Result<()> {
     Ok(())
 }
 
-fn remove_alias(store: &mut AliasStore, alias: &str) -> Result<()> {
+fn remove_alias(store: &mut AliasStore, alias: Option<&str>) -> Result<()> {
+    if let Some(alias) = alias {
+        return remove_alias_by_name(store, alias);
+    }
+
+    pick_and_remove(store)
+}
+
+fn remove_alias_by_name(store: &mut AliasStore, alias: &str) -> Result<()> {
     if !store.remove(alias) {
         bail!("alias `{alias}` was not found");
     }
@@ -114,10 +122,30 @@ fn run_alias(store: &AliasStore, query: Option<&str>) -> Result<()> {
 }
 
 fn pick_and_run(store: &AliasStore, initial_query: Option<&str>) -> Result<()> {
-    let script = ui::select_alias(store.scripts(), initial_query)?
-        .context("no aliases saved yet; add one with `snake add`")?;
+    if store.is_empty() {
+        bail!("no aliases saved yet; add one with `snake add`");
+    }
+
+    let Some(script) = ui::select_alias("Choose a command:", store.scripts(), initial_query)?
+    else {
+        return Ok(());
+    };
 
     run_script(&script)
+}
+
+fn pick_and_remove(store: &mut AliasStore) -> Result<()> {
+    if store.is_empty() {
+        println!("No aliases saved yet. Add one with `snake add`.");
+        return Ok(());
+    }
+
+    let Some(script) = ui::select_alias("Choose an alias to remove:", store.scripts(), None)?
+    else {
+        return Ok(());
+    };
+
+    remove_alias_by_name(store, &script.alias)
 }
 
 fn run_script(script: &store::ScriptAlias) -> Result<()> {
