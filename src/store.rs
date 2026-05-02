@@ -33,7 +33,7 @@ impl ScriptAlias {
 
 impl std::fmt::Display for ScriptAlias {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}  {}", self.alias, self.command)
+        formatter.write_str(&self.alias)
     }
 }
 
@@ -151,6 +151,13 @@ mod tests {
 
         assert_eq!(script.alias, "build");
         assert_eq!(script.command, "cargo build");
+    }
+
+    #[test]
+    fn displays_only_the_alias() {
+        let script = ScriptAlias::new("build", "cargo build").expect("script");
+
+        assert_eq!(script.to_string(), "build");
     }
 
     #[test]
